@@ -170,7 +170,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   .dn{font-size:10px;margin-bottom:1px}
   .chip{font-size:9px;padding:1px 3px}
   .slot{font-size:8px;padding:1px 3px}
-  .ea-lbl{display:none}               /* 手機不顯示EA小字，省空間 */
+
   .mine-dot{width:4px;height:4px;top:3px;right:3px}
   .dow{font-size:9px;padding:6px 0}
 
@@ -474,7 +474,7 @@ function renderCal(){
     const chips=arr.slice(0,2).map(n=>`<div class="chip c${cidx(n)}"${n===S.me?' style="outline:1.5px solid currentColor"':''}>${n}</div>`).join('');
     let badge='';
     if(cnt>0){const bc=cnt>LIMIT?'s-over':cnt===LIMIT?'s-full':'s-ok';badge=`<span class="slot ${bc}">${cnt}/${LIMIT}</span>`;}
-    const ea=S.eaData[k];const eaB=ea!==undefined?`<span class="ea-lbl">EA${ea}</span>`:'';
+    const ea=S.eaData[k];const eaB=ea!==undefined?`<span class="ea-lbl">上班EA人數:${ea}</span>`:'';
     h+=`<div class="${cls}" onclick="openModal(${y},${m},${d})">
       ${isMine?'<div class="mine-dot"></div>':''}
       <div class="dn">${d}</div>
