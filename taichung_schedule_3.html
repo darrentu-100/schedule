@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台北主管 × 台中排班</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f3ef; --surface:#fff; --surface2:#f0ede8;
+  --border:#e0dbd2; --border2:#ccc7bc;
+  --text:#1a1814; --text2:#6b6660; --text3:#9e9890;
+  --accent:#2d5a3d; --accent-lt:#e8f2eb;
+  --warn:#c0392b; --warn-lt:#fdecea;
+  --amber:#c07800; --amber-lt:#fdf5e0;
+  --radius:10px; --rsm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
+.hdr{background:var(--text);color:#fff;padding:0 1.5rem;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.hdr-title{font-size:15px;font-weight:500;letter-spacing:.04em}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#4caf82;display:inline-block;margin-right:5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.hdr-time{font-size:11px;color:rgba(255,255,255,.45);font-family:'DM Mono',monospace}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border)}
+.tab-btn{flex:1;padding:11px 0;border:none;background:none;cursor:pointer;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--text);font-weight:500}
+.wrap{max-width:1120px;margin:0 auto;padding:1.25rem 1.25rem 3rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem}
+.card-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text2)}
+.card-body{padding:16px}
+.layout{display:grid;grid-template-columns:260px 1fr;gap:1rem;align-items:start}
+.sel{width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--rsm);font-family:'Noto Sans TC',sans-serif;font-size:14px;background:var(--surface);color:var(--text);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 5 5-5' stroke='%239e9890' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer}
+.sel:focus{outline:none;border-color:var(--accent)}
+.badge-me{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:var(--accent-lt);border-radius:var(--rsm);color:var(--accent)}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.my-list{display:flex;flex-direction:column;gap:4px}
+.my-item{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;background:var(--surface2);border-radius:var(--rsm);font-size:12px}
+.mono{font-family:'DM Mono',monospace}
+.del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:0 2px;border-radius:3px}
+.del:hover{color:var(--warn);background:var(--warn-lt)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.stat{background:var(--surface2);border-radius:var(--rsm);padding:10px;text-align:center}
+.stat-n{font-size:22px;font-weight:700;font-family:'DM Mono',monospace}
+.stat-l{font-size:10px;color:var(--text3);letter-spacing:.04em}
+.ea-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.ea-row:last-child{border:none}
+.mono-sm{font-family:'DM Mono',monospace;color:var(--text2)}
+.cal-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.cal-month-lbl{font-size:16px;font-weight:500}
+.nav-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--border2);background:var(--surface);cursor:pointer;color:var(--text);font-size:15px;display:flex;align-items:center;justify-content:center}
+.nav-btn:hover{background:var(--surface2)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.dow{text-align:center;font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--text3);padding:8px 0;border-bottom:1px solid var(--border)}
+.dow.sat{color:#5b8dd9}.dow.sun{color:var(--warn)}
+.cell{border-right:1px solid var(--border);border-bottom:1px solid var(--border);min-height:86px;padding:5px;cursor:pointer;transition:background .1s;position:relative}
+.cell:nth-child(7n){border-right:none}
+.cell:hover{background:var(--surface2)}
+.cell.empty{background:var(--bg);cursor:default}.cell.empty:hover{background:var(--bg)}
+.cell.today{background:#fffcf0}.cell.today .dn{color:#8b4a1c;font-weight:700}
+.cell.past{opacity:.5}
+.cell.sat .dn{color:#5b8dd9}.cell.sun .dn{color:var(--warn)}
+.dn{font-size:11px;font-family:'DM Mono',monospace;margin-bottom:3px}
+.chips{display:flex;flex-direction:column;gap:2px}
+.chip{font-size:10px;padding:1px 5px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;max-width:100%}
+.cell-foot{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
+.slot{font-size:9px;font-family:'DM Mono',monospace;padding:1px 4px;border-radius:3px;font-weight:500}
+.s-ok{background:var(--accent-lt);color:var(--accent)}
+.s-full{background:var(--amber-lt);color:var(--amber)}
+.s-over{background:var(--warn-lt);color:var(--warn)}
+.ea-lbl{font-size:9px;color:var(--text3);font-family:'DM Mono',monospace}
+.mine-dot{position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.c0{background:#dff0e8;color:#1a5c35}.c1{background:#dde8f8;color:#1a3a6b}.c2{background:#f0e8f8;color:#4a1a7a}
+.c3{background:#f8ece0;color:#7a3a0a}.c4{background:#dff0f0;color:#1a5a5a}.c5{background:#f8e8e8;color:#7a1a1a}
+.c6{background:#e8f0e0;color:#3a5a1a}.c7{background:#f0ece0;color:#5a3a1a}.c8{background:#e8e8f8;color:#1a1a7a}
+.c9{background:#f8f4e0;color:#7a5a1a}.c10{background:#f0f0e8;color:#5a5a1a}.c11{background:#e0e8f0;color:#1a3a5a}
+.c12{background:#f8e8f0;color:#7a1a4a}.c13{background:#e8f8e8;color:#1a7a1a}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius);padding:22px;width:380px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,.18);animation:up .18s ease}
+@keyframes up{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-date{font-size:17px;font-weight:500;margin-bottom:3px}
+.modal-meta{font-size:12px;color:var(--text3);margin-bottom:14px}
+.sec-title{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:7px}
+.person-row{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:var(--rsm);font-size:13px;background:var(--surface2);margin-bottom:4px}
+.own-tag{font-size:10px;padding:1px 5px;background:var(--accent-lt);color:var(--accent);border-radius:3px;margin-left:5px}
+.rm-btn{background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);padding:2px 6px;border-radius:3px}
+.rm-btn:hover{color:var(--warn);background:var(--warn-lt)}
+.warn-bar{padding:7px 10px;background:var(--warn-lt);color:var(--warn);border-radius:var(--rsm);font-size:12px;margin-bottom:10px}
+.add-btn{width:100%;padding:10px;border-radius:var(--rsm);border:1.5px dashed var(--border2);background:none;cursor:pointer;color:var(--text2);font-size:13px;font-family:'Noto Sans TC',sans-serif;transition:all .15s;margin-bottom:10px}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-lt)}
+.add-btn:disabled{opacity:.38;cursor:not-allowed}
+.added-bar{width:100%;padding:9px;border-radius:var(--rsm);border:1.5px solid var(--accent);background:var(--accent-lt);color:var(--accent);font-size:13px;text-align:center;margin-bottom:10px}
+.info-bar{padding:7px 10px;background:var(--surface2);border-radius:var(--rsm);font-size:12px;color:var(--text2);margin-bottom:8px}
+.close-btn{padding:7px 20px;border:1px solid var(--border2);background:none;border-radius:var(--rsm);cursor:pointer;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text)}
+.close-btn:hover{background:var(--surface2)}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--text);color:#fff;padding:9px 16px;border-radius:var(--rsm);font-size:13px;z-index:300;transform:translateY(60px);opacity:0;transition:all .25s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.ov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1px;background:var(--border)}
+.ov-card{background:var(--surface);padding:11px 13px}
+.ov-date{font-size:10px;font-family:'DM Mono',monospace;color:var(--text2);padding:1px 4px;background:var(--surface2);border-radius:3px}
+.admin-sec{margin-bottom:0}
+.inp{padding:7px 12px;border:1px solid var(--border2);border-radius:var(--rsm);font-size:13px;font-family:'Noto Sans TC',sans-serif;background:var(--surface);color:var(--text)}
+.inp:focus{outline:none;border-color:var(--accent)}
+.btn{padding:7px 16px;border:1px solid var(--border2);border-radius:var(--rsm);cursor:pointer;font-size:13px;font-family:'Noto Sans TC',sans-serif;background:none;color:var(--text)}
+.btn:hover{background:var(--surface2)}
+.btn-p{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-p:hover{opacity:.85;background:var(--accent)}
+.btn-d{background:none;color:var(--warn);border-color:#f5c6c2;padding:5px 12px;font-size:12px}
+.btn-d:hover{background:var(--warn-lt)}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:99px;font-size:12px}
+.tag button{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;line-height:1}
+.tag button:hover{color:var(--warn)}
+.hint{font-size:11px;color:var(--text3)}
+
+/* TC manager leave mini-cal */
+.tc-person-row{border:1px solid var(--border);border-radius:var(--rsm);overflow:hidden;margin-bottom:8px}
+.tc-person-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface2);cursor:pointer;user-select:none;gap:8px}
+.tc-person-name{font-size:13px;font-weight:500;flex:1}
+.tc-person-body{padding:12px;border-top:1px solid var(--border);display:none}
+.tc-person-body.open{display:block}
+.mini-nav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.mini-nav span{font-size:12px;font-weight:500;flex:1;text-align:center}
+.mini-nav button{width:22px;height:22px;border-radius:50%;border:1px solid var(--border2);background:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.mini-nav button:hover{background:var(--surface2)}
+.mini-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.mini-hdr{text-align:center;font-size:10px;color:var(--text3);padding:3px 0;font-weight:500}
+.mini-hdr.sat{color:#5b8dd9}.mini-hdr.sun{color:var(--warn)}
+.mini-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;border:1px solid transparent;transition:all .1s;user-select:none;min-width:0}
+.mini-cell.empty{cursor:default;visibility:hidden}
+.mini-cell.wknd{color:var(--text3);background:var(--surface2);cursor:default}
+.mini-cell.working{background:var(--accent-lt);color:var(--accent);border-color:#b8dcc4}
+.mini-cell.working:hover{background:#d0ecd8}
+.mini-cell.leave{background:var(--warn-lt);color:var(--warn);border-color:#f5c6c2;text-decoration:line-through}
+.mini-cell.leave:hover{background:#fce0dc}
+.leave-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.leave-chip{padding:2px 7px;background:var(--warn-lt);color:var(--warn);border-radius:3px;font-size:10px;font-family:'DM Mono',monospace}
+
+/* EA grid */
+.ea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:5px}
+.ea-cell{display:flex;flex-direction:column;align-items:center;background:var(--surface2);padding:6px 4px;border-radius:var(--rsm);gap:3px}
+.ea-cell-date{font-size:10px;font-family:'DM Mono',monospace;color:var(--text2);text-align:center;line-height:1.3}
+.ea-num{width:100%;padding:4px 2px;border:1px solid var(--border2);border-radius:4px;font-size:14px;text-align:center;background:var(--surface);color:var(--text);font-family:'DM Mono',monospace;font-weight:500}
+.ea-num:focus{outline:none;border-color:var(--accent)}
+.ea-cell.wknd{opacity:.45}
+
+/* ── 手機響應式 ── */
+@media(max-width:680px){
+  /* 整體間距縮小 */
+  .wrap{padding:.75rem .75rem 5rem}
+  .card{border-radius:8px;margin-bottom:.75rem}
+
+  /* header 縮小 */
+  .hdr{padding:0 1rem;height:48px}
+  .hdr-title{font-size:14px}
+  .hdr-time{font-size:10px}
+
+  /* tabs 字縮小 */
+  .tab-btn{font-size:12px;padding:10px 0}
+
+  /* 雙欄改單欄，左側資訊移到月曆下方 */
+  .layout{grid-template-columns:1fr;gap:.75rem}
+  .layout > div:first-child{order:2}   /* 左側資訊欄移到下方 */
+  .layout > div:last-child{order:1}    /* 月曆優先顯示 */
+
+  /* 月曆格子手機版 */
+  .cell{min-height:52px;padding:3px 2px}
+  .dn{font-size:10px;margin-bottom:1px}
+  .chip{font-size:9px;padding:1px 3px}
+  .slot{font-size:8px;padding:1px 3px}
+  .ea-lbl{display:none}               /* 手機不顯示EA小字，省空間 */
+  .mine-dot{width:4px;height:4px;top:3px;right:3px}
+  .dow{font-size:9px;padding:6px 0}
+
+  /* 月曆 header */
+  .cal-top{padding:10px 12px}
+  .cal-month-lbl{font-size:15px}
+
+  /* 左側資訊欄：統計改4欄 */
+  .stats{grid-template-columns:repeat(4,1fr)}
+  .stat-n{font-size:18px}
+  .stat-l{font-size:9px}
+
+  /* modal 全寬 */
+  .modal{width:100%;max-width:100%;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;padding:20px 16px 32px;animation:slideUp .22s ease}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .overlay{align-items:flex-end}
+  .modal-date{font-size:16px}
+  .add-btn{padding:14px;font-size:15px}  /* 手指好按 */
+  .added-bar{padding:14px;font-size:14px}
+
+  /* admin 輸入元素放大方便點按 */
+  .inp{font-size:16px;padding:10px 12px}  /* iOS 不會自動縮放 */
+  .sel{font-size:16px;padding:10px 12px}
+  .btn{padding:10px 16px;font-size:14px}
+  .btn-p{padding:10px 16px}
+  .ea-num{font-size:16px;padding:8px 4px}
+
+  /* TC mini-cal 格子放大方便點 */
+  .mini-cell{font-size:12px;border-radius:5px}
+  .tc-person-hdr{padding:12px}
+  .tc-person-name{font-size:14px}
+
+  /* EA grid 兩欄 */
+  .ea-grid{grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:4px}
+  .ea-cell{padding:6px 3px}
+
+  /* 我的排程項目加大 */
+  .my-item{padding:8px 12px;font-size:13px}
+  .del{font-size:18px;padding:0 4px}
+
+  /* overview 排版 */
+  .ov-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">台北主管 × 台中排班</div>
+  <div class="hdr-time"><span class="sync-dot"></span><span id="syncTime">—</span></div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('schedule',this)">📅 排班月曆</button>
+  <button class="tab-btn" onclick="switchTab('overview',this)">👥 總覽</button>
+  <button class="tab-btn" onclick="switchTab('admin',this)">⚙️ 設定</button>
+</div>
+
+<div class="wrap">
+
+<!-- ══ 排班月曆 ══ -->
+<div id="tab-schedule">
+  <div class="layout">
+    <div>
+      <div class="card">
+        <div class="card-hdr"><div class="card-title">我是誰</div></div>
+        <div class="card-body">
+          <select class="sel" id="identSel" onchange="onIdentChange()">
+            <option value="">— 請選擇 —</option>
+          </select>
+          <div id="identBadge" style="display:none" class="badge-me">
+            <div class="avatar" id="identAvatar"></div>
+            <div>
+              <div style="font-size:13px;font-weight:500" id="identName"></div>
+              <div style="font-size:11px;opacity:.65">台北主管</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr">
+          <div class="card-title">本月我的排程</div>
+          <div id="myCount" style="font-size:11px;color:var(--text3)"></div>
+        </div>
+        <div class="card-body">
+          <div class="my-list" id="myList"><div style="font-size:12px;color:var(--text3)">請先選擇名字</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr"><div class="card-title">本月統計</div></div>
+        <div class="card-body">
+          <div class="stats">
+            <div class="stat"><div class="stat-n" id="sTotal">0</div><div class="stat-l">總場次</div></div>
+            <div class="stat"><div class="stat-n" id="sDays">0</div><div class="stat-l">排程天數</div></div>
+            <div class="stat"><div class="stat-n" id="sMgrs">0</div><div class="stat-l">主管人數</div></div>
+            <div class="stat"><div class="stat-n" id="sEmpty">0</div><div class="stat-l">尚未排班</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr"><div class="card-title">EA 人力（本月）</div></div>
+        <div class="card-body" id="eaSideBody"><div style="font-size:12px;color:var(--text3)">尚無資料</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="overflow:hidden">
+      <div class="cal-top">
+        <div class="cal-month-lbl" id="calLbl"></div>
+        <div style="display:flex;gap:6px">
+          <button class="nav-btn" onclick="chMonth(-1)">‹</button>
+          <button class="nav-btn" onclick="chMonth(1)">›</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 總覽 ══ -->
+<div id="tab-overview" style="display:none">
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-hdr">
+      <div class="card-title">台北主管排班一覽</div>
+      <div id="ovMonth" style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace"></div>
+    </div>
+    <div class="ov-grid" id="ovGrid"></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">台中主管 — 本月在班日</div></div>
+    <div id="tcOvBody" style="padding:16px;font-size:12px;color:var(--text3)">（請於設定中新增台中主管）</div>
+  </div>
+</div>
+
+<!-- ══ 設定 ══ -->
+<div id="tab-admin" style="display:none">
+
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-hdr"><div class="card-title">① 台北主管名單</div></div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input class="inp" id="newMgr" placeholder="輸入姓名，Enter 新增" maxlength="10" style="flex:1;min-width:150px"
+          onkeydown="if(event.key==='Enter')addMgr()">
+        <button class="btn btn-p" onclick="addMgr()">＋ 新增</button>
+      </div>
+      <div class="tags" id="mgrTags"></div>
+      <div class="hint">點 × 刪除主管</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-hdr">
+      <div class="card-title">② 台中主管班表</div>
+      <div style="font-size:11px;color:var(--text3)">預設全月上班，點日期 → 標記休假</div>
+    </div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input class="inp" id="newTcMgr" placeholder="新增台中主管姓名" maxlength="10" style="flex:1;min-width:150px"
+          onkeydown="if(event.key==='Enter')addTcMgr()">
+        <button class="btn btn-p" onclick="addTcMgr()">＋ 新增</button>
+      </div>
+      <div id="tcEditWrap"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-hdr">
+      <div class="card-title">③ EA 人力（每日人數）</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="sel" id="eaMthSel" onchange="renderEaGrid()" style="font-size:12px;padding:5px 28px 5px 8px;width:auto"></select>
+        <button class="btn btn-p" onclick="saveEa()" style="padding:5px 14px;font-size:12px;white-space:nowrap">儲存</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">填入每天可出勤的 EA 人數，週末自動淡化。</div>
+      <div class="ea-grid" id="eaGrid"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">危險操作</div></div>
+    <div class="card-body">
+      <button class="btn btn-d" onclick="clearSched()">清除本月所有排班記錄</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- modal -->
+<div class="overlay" id="overlay" onclick="closeOvl(event)">
+  <div class="modal">
+    <div class="modal-date" id="mDate"></div>
+    <div class="modal-meta" id="mMeta"></div>
+    <div id="mWarn" class="warn-bar" style="display:none">⚠ 今日已達 2 位上限</div>
+    <div class="sec-title">已登記前往</div>
+    <div id="mPeople" style="margin-bottom:10px"></div>
+    <div id="mEa" class="info-bar" style="display:none"></div>
+    <div id="mTc" style="font-size:12px;color:var(--text3);margin-bottom:10px"></div>
+    <div id="mAction"></div>
+    <div style="display:flex;justify-content:flex-end"><button class="close-btn" onclick="closeModal()">關閉</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LIMIT=2;
+const DOW=['日','一','二','三','四','五','六'];
+const MTH=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+let S={
+  year:new Date().getFullYear(), month:new Date().getMonth(),
+  me:'',
+  managers:['王大明','林小華','陳志遠','張美玲','李建國','劉雅婷','吳文傑','黃淑芬','陳建宏','林佳穎'],
+  schedule:{},
+  tcManagers:{}, // { name: { leaveDays:['YYYY-MM-DD',...] } }
+  eaData:{}
+};
+let tcEditMth={year:new Date().getFullYear(),month:new Date().getMonth()};
+
+function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+function parseDk(k){const[y,m,d]=k.split('-').map(Number);return{y,m:m-1,d}}
+function dim(y,m){return new Date(y,m+1,0).getDate()}
+function cidx(n){return S.managers.indexOf(n)%14}
+function isWknd(y,m,d){const w=new Date(y,m,d).getDay();return w===0||w===6}
+
+
+
+function buildIdentSel(){
+  const s=document.getElementById('identSel');
+  s.innerHTML='<option value="">— 請選擇 —</option>'+
+    S.managers.map(n=>`<option value="${n}"${n===S.me?' selected':''}>${n}</option>`).join('');
+}
+function onIdentChange(){S.me=document.getElementById('identSel').value;save();renderAll();}
+function renderIdentBadge(){
+  const b=document.getElementById('identBadge');
+  if(S.me){b.style.display='flex';document.getElementById('identAvatar').textContent=S.me.slice(0,2);document.getElementById('identName').textContent=S.me;}
+  else b.style.display='none';
+}
+
+function renderMyList(){
+  const{year:y,month:m}=S;
+  const el=document.getElementById('myList'),cnt=document.getElementById('myCount');
+  if(!S.me){el.innerHTML='<div style="font-size:12px;color:var(--text3)">請先選擇名字</div>';cnt.textContent='';return;}
+  const days=[];
+  for(let d=1;d<=dim(y,m);d++){const k=dk(y,m,d);if((S.schedule[k]||[]).includes(S.me))days.push({k,d});}
+  if(!days.length){el.innerHTML='<div style="font-size:12px;color:var(--text3)">本月尚未登記</div>';cnt.textContent='';return;}
+  el.innerHTML=days.map(({k,d})=>{const w=new Date(y,m,d).getDay();
+    return`<div class="my-item"><span class="mono">${m+1}/${d}(${DOW[w]})</span><button class="del" onclick="removeSelf('${k}')">✕</button></div>`;
+  }).join('');
+  cnt.textContent=`共 ${days.length} 次`;
+}
+function removeSelf(k){
+  if(!S.schedule[k])return;
+  S.schedule[k]=S.schedule[k].filter(n=>n!==S.me);
+  if(!S.schedule[k].length)delete S.schedule[k];
+  save();renderAll();toast('已取消登記');
+}
+
+function renderStats(){
+  const{year:y,month:m}=S;
+  let total=0,days=0;
+  for(let d=1;d<=dim(y,m);d++){const a=S.schedule[dk(y,m,d)]||[];if(a.length){total+=a.length;days++;}}
+  const empty=S.managers.filter(n=>{for(let d=1;d<=dim(y,m);d++)if((S.schedule[dk(y,m,d)]||[]).includes(n))return false;return true;}).length;
+  document.getElementById('sTotal').textContent=total;
+  document.getElementById('sDays').textContent=days;
+  document.getElementById('sMgrs').textContent=S.managers.length;
+  document.getElementById('sEmpty').textContent=empty;
+}
+
+function renderEaSide(){
+  const{year:y,month:m}=S;
+  const items=[];
+  for(let d=1;d<=dim(y,m);d++){const k=dk(y,m,d);const n=S.eaData[k];if(n!==undefined)items.push({d,w:new Date(y,m,d).getDay(),n});}
+  const el=document.getElementById('eaSideBody');
+  if(!items.length){el.innerHTML='<div style="font-size:12px;color:var(--text3)">尚無資料</div>';return;}
+  el.innerHTML=items.map(({d,w,n})=>
+    `<div class="ea-row"><span class="mono-sm">${m+1}/${d}(${DOW[w]})</span><span style="font-weight:500;color:var(--accent)">${n} 人</span></div>`
+  ).join('');
+}
+
+function renderCal(){
+  const{year:y,month:m}=S;
+  document.getElementById('calLbl').textContent=`${y} 年 ${MTH[m]}`;
+  const grid=document.getElementById('calGrid');
+  const today=new Date();
+  const first=new Date(y,m,1).getDay();
+  let h=DOW.map((d,i)=>`<div class="dow${i===0?' sun':i===6?' sat':''}">${d}</div>`).join('');
+  for(let i=0;i<first;i++)h+=`<div class="cell empty"></div>`;
+  for(let d=1;d<=dim(y,m);d++){
+    const k=dk(y,m,d);const arr=S.schedule[k]||[];const cnt=arr.length;
+    const w=new Date(y,m,d).getDay();
+    const isToday=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    const isPast=new Date(y,m,d)<new Date(today.getFullYear(),today.getMonth(),today.getDate());
+    const isMine=arr.includes(S.me);
+    let cls='cell';
+    if(isToday)cls+=' today';if(isPast)cls+=' past';if(w===0)cls+=' sun';if(w===6)cls+=' sat';
+    const chips=arr.slice(0,2).map(n=>`<div class="chip c${cidx(n)}"${n===S.me?' style="outline:1.5px solid currentColor"':''}>${n}</div>`).join('');
+    let badge='';
+    if(cnt>0){const bc=cnt>LIMIT?'s-over':cnt===LIMIT?'s-full':'s-ok';badge=`<span class="slot ${bc}">${cnt}/${LIMIT}</span>`;}
+    const ea=S.eaData[k];const eaB=ea!==undefined?`<span class="ea-lbl">EA${ea}</span>`:'';
+    h+=`<div class="${cls}" onclick="openModal(${y},${m},${d})">
+      ${isMine?'<div class="mine-dot"></div>':''}
+      <div class="dn">${d}</div>
+      <div class="chips">${chips}</div>
+      <div class="cell-foot">${badge}${eaB}</div>
+    </div>`;
+  }
+  grid.innerHTML=h;
+}
+
+let modalKey=null;
+function openModal(y,m,d){
+  modalKey=dk(y,m,d);
+  const arr=S.schedule[modalKey]||[];
+  const w=new Date(y,m,d).getDay();
+  const isPast=new Date(y,m,d)<new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+  document.getElementById('mDate').textContent=`${y}年${m+1}月${d}日（${DOW[w]}）`;
+  document.getElementById('mMeta').textContent=`已登記 ${arr.length} 位，上限 ${LIMIT} 位`;
+  document.getElementById('mWarn').style.display=arr.length>=LIMIT?'':'none';
+  const pEl=document.getElementById('mPeople');
+  if(!arr.length){pEl.innerHTML='<div style="font-size:12px;color:var(--text3)">尚無人員</div>';}
+  else{pEl.innerHTML=arr.map(n=>{const isMe=n===S.me;
+    return`<div class="person-row c${cidx(n)}"><span><span class="chip c${cidx(n)}" style="margin-right:4px">${n}</span>${isMe?'<span class="own-tag">我</span>':''}</span>${isMe&&!isPast?`<button class="rm-btn" onclick="removeFromDay('${modalKey}','${n}')">取消</button>`:''}</div>`;
+  }).join('');}
+  const ea=S.eaData[modalKey];
+  const eaEl=document.getElementById('mEa');
+  if(ea!==undefined){eaEl.style.display='';eaEl.textContent=`EA 當日人力：${ea} 人`;}else eaEl.style.display='none';
+  const tcEl=document.getElementById('mTc');
+  const onDuty=Object.entries(S.tcManagers).filter(([,v])=>!(v.leaveDays||[]).includes(modalKey)&&!isWknd(y,m,d)).map(([n])=>n);
+  tcEl.textContent=onDuty.length?`台中主管當班：${onDuty.join('、')}`:'';
+  const act=document.getElementById('mAction');
+  const alreadyIn=arr.includes(S.me);
+  if(!S.me) act.innerHTML='<div style="font-size:12px;color:var(--text3);margin-bottom:10px">請先選擇您的名字</div>';
+  else if(alreadyIn) act.innerHTML='<div class="added-bar">✓ 您已登記此日</div>';
+  else if(arr.length>=LIMIT) act.innerHTML=`<button class="add-btn" disabled>今日已達上限（${LIMIT} 位）</button>`;
+  else if(isPast) act.innerHTML='<div style="font-size:12px;color:var(--text3);margin-bottom:10px">此日期已過</div>';
+  else act.innerHTML=`<button class="add-btn" onclick="addSelf()">＋ 登記「${S.me}」前往台中</button>`;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');}
+function closeOvl(e){if(e.target.id==='overlay')closeModal();}
+function addSelf(){
+  if(!S.me||!modalKey)return;
+  if(!S.schedule[modalKey])S.schedule[modalKey]=[];
+  if(S.schedule[modalKey].length>=LIMIT)return;
+  if(!S.schedule[modalKey].includes(S.me))S.schedule[modalKey].push(S.me);
+  save();renderAll();
+  const{y,m,d}=parseDk(modalKey);openModal(y,m,d);
+  toast(`已登記 ${S.me} 前往台中 ${m+1}/${d}`);
+}
+function removeFromDay(k,name){
+  if(!S.schedule[k])return;
+  S.schedule[k]=S.schedule[k].filter(n=>n!==name);
+  if(!S.schedule[k].length)delete S.schedule[k];
+  save();renderAll();const{y,m,d}=parseDk(k);openModal(y,m,d);toast('已取消登記');
+}
+function chMonth(dir){
+  S.month+=dir;if(S.month>11){S.month=0;S.year++;}if(S.month<0){S.month=11;S.year--;}
+  save();renderAll();
+}
+
+function renderOverview(){
+  const{year:y,month:m}=S;
+  document.getElementById('ovMonth').textContent=`${y}年${MTH[m]}`;
+  document.getElementById('ovGrid').innerHTML=S.managers.map((n,i)=>{
+    const days=[];for(let d=1;d<=dim(y,m);d++)if((S.schedule[dk(y,m,d)]||[]).includes(n))days.push(d);
+    return`<div class="ov-card"><div class="c${i%14}" style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500"><span>${n}</span><span style="font-size:10px;opacity:.7">${days.length}次</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">${days.map(d=>`<span class="ov-date">${m+1}/${d}(${DOW[new Date(y,m,d).getDay()]})</span>`).join('')||'<span style="font-size:10px;color:var(--text3)">未排班</span>'}</div></div>`;
+  }).join('');
+  const tcEl=document.getElementById('tcOvBody');
+  const names=Object.keys(S.tcManagers);
+  if(!names.length){tcEl.innerHTML='<div style="padding:8px;font-size:12px;color:var(--text3)">尚無資料</div>';return;}
+  tcEl.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1px;background:var(--border)">` +
+    names.map(name=>{
+      const leaves=S.tcManagers[name].leaveDays||[];
+      const wds=[];
+      for(let d=1;d<=dim(y,m);d++){const k=dk(y,m,d);if(!isWknd(y,m,d)&&!leaves.includes(k))wds.push(d);}
+      return`<div style="background:var(--surface);padding:11px 13px"><div style="font-size:12px;font-weight:500;margin-bottom:5px">${name}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px">${wds.map(d=>`<span class="ov-date">${m+1}/${d}(${DOW[new Date(y,m,d).getDay()]})</span>`).join('')||'<span style="font-size:10px;color:var(--text3)">全月無班</span>'}</div></div>`;
+    }).join('')+'</div>';
+}
+
+// ── admin managers ──
+function addMgr(){
+  const inp=document.getElementById('newMgr');const n=inp.value.trim();
+  if(!n||S.managers.includes(n)){inp.value='';return;}
+  S.managers.push(n);inp.value='';save();renderMgrTags();buildIdentSel();
+}
+function removeMgr(name){
+  if(!confirm(`確定移除「${name}」？`))return;
+  S.managers=S.managers.filter(n=>n!==name);
+  for(const k in S.schedule){S.schedule[k]=(S.schedule[k]||[]).filter(n=>n!==name);if(!S.schedule[k].length)delete S.schedule[k];}
+  if(S.me===name)S.me='';
+  save();renderMgrTags();buildIdentSel();renderAll();
+}
+function renderMgrTags(){
+  document.getElementById('mgrTags').innerHTML=S.managers.map((n,i)=>
+    `<div class="tag c${i%14}"><span>${n}</span><button onclick="removeMgr('${n}')">×</button></div>`
+  ).join('');
+}
+
+// ── admin TC managers ──
+function addTcMgr(){
+  const inp=document.getElementById('newTcMgr');const n=inp.value.trim();
+  if(!n)return;
+  if(!S.tcManagers[n])S.tcManagers[n]={leaveDays:[]};
+  inp.value='';save();renderTcEdit();
+}
+function removeTcMgr(name){
+  if(!confirm(`確定刪除「${name}」的班表？`))return;
+  delete S.tcManagers[name];save();renderTcEdit();
+}
+function toggleLeave(name,k){
+  const mgr=S.tcManagers[name];if(!mgr)return;
+  if(!mgr.leaveDays)mgr.leaveDays=[];
+  const idx=mgr.leaveDays.indexOf(k);
+  if(idx>=0)mgr.leaveDays.splice(idx,1);else mgr.leaveDays.push(k);
+  save();renderTcEdit();
+  // keep open
+  const bodyId='tcb-'+name.replace(/[^a-zA-Z0-9]/g,'_');
+  const el=document.getElementById(bodyId);
+  if(el)el.classList.add('open');
+}
+function renderTcEdit(){
+  const wrap=document.getElementById('tcEditWrap');
+  const names=Object.keys(S.tcManagers);
+  if(!names.length){wrap.innerHTML='<div style="font-size:12px;color:var(--text3)">尚無台中主管，請上方新增</div>';return;}
+  const{year:ey,month:em}=tcEditMth;
+  wrap.innerHTML=names.map(name=>{
+    const leaves=S.tcManagers[name].leaveDays||[];
+    const total=dim(ey,em);const first=new Date(ey,em,1).getDay();
+    const monthLeaves=leaves.filter(k=>{const{y,m}=parseDk(k);return y===ey&&m===em;});
+    let workCount=0;
+    for(let d=1;d<=total;d++){const k=dk(ey,em,d);if(!isWknd(ey,em,d)&&!leaves.includes(k))workCount++;}
+    let cells='';
+    for(let i=0;i<first;i++)cells+=`<div class="mini-cell empty"></div>`;
+    for(let d=1;d<=total;d++){
+      const k=dk(ey,em,d);const wknd=isWknd(ey,em,d);const isLeave=leaves.includes(k);
+      const cls=wknd?'mini-cell wknd':isLeave?'mini-cell leave':'mini-cell working';
+      const oc=wknd?'':`onclick="toggleLeave('${name}','${k}')"`;
+      const title=wknd?'週末':(isLeave?'休假（點擊恢復）':'上班（點擊標記休假）');
+      cells+=`<div class="${cls}" ${oc} title="${title}">${d}</div>`;
+    }
+    const leaveChips=monthLeaves.map(k=>{const{m,d}=parseDk(k);const w=new Date(ey,m,d).getDay();
+      return`<span class="leave-chip">${m+1}/${d}(${DOW[w]})</span>`;}).join('');
+    const bodyId='tcb-'+name.replace(/[^a-zA-Z0-9]/g,'_');
+    return`<div class="tc-person-row">
+      <div class="tc-person-hdr" onclick="toggleTcBody('${bodyId}')">
+        <div class="tc-person-name">${name}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span style="font-size:11px;color:var(--accent)">上班 ${workCount} 天</span>
+          ${monthLeaves.length?`<span style="font-size:11px;color:var(--warn)">休假 ${monthLeaves.length} 天</span>`:''}
+          <span style="font-size:12px;color:var(--text3)">▾</span>
+          <button class="btn btn-d" onclick="event.stopPropagation();removeTcMgr('${name}')">刪除</button>
+        </div>
+      </div>
+      <div class="tc-person-body" id="${bodyId}">
+        <div class="mini-nav">
+          <button onclick="tcMthCh(-1)">‹</button>
+          <span>${ey}年 ${MTH[em]}</span>
+          <button onclick="tcMthCh(1)">›</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">
+          🟢 上班 &nbsp; 🔴 休假（點擊切換，週末固定不排）
+        </div>
+        <div class="mini-cal">
+          ${DOW.map((d,i)=>`<div class="mini-hdr${i===0?' sun':i===6?' sat':''}">${d}</div>`).join('')}
+          ${cells}
+        </div>
+        ${monthLeaves.length?`<div style="margin-top:8px;font-size:11px;color:var(--text2)">本月休假日：</div><div class="leave-chips">${leaveChips}</div>`:'<div style="margin-top:6px;font-size:11px;color:var(--text3)">本月無請假</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+function toggleTcBody(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');}
+function tcMthCh(dir){
+  tcEditMth.month+=dir;
+  if(tcEditMth.month>11){tcEditMth.month=0;tcEditMth.year++;}
+  if(tcEditMth.month<0){tcEditMth.month=11;tcEditMth.year--;}
+  renderTcEdit();
+  // reopen all open bodies
+  document.querySelectorAll('.tc-person-body').forEach(el=>el.classList.add('open'));
+}
+
+// ── admin EA ──
+function buildEaMthSel(){
+  const sel=document.getElementById('eaMthSel');const cur=new Date();let html='';
+  for(let i=-1;i<=4;i++){
+    let y=cur.getFullYear(),m=cur.getMonth()+i;
+    if(m<0){m+=12;y--;}if(m>11){m-=12;y++;}
+    const val=`${y}-${String(m+1).padStart(2,'0')}`;
+    html+=`<option value="${val}"${y===S.year&&m===S.month?' selected':''}>${y}年${MTH[m]}</option>`;
+  }
+  sel.innerHTML=html;
+}
+function renderEaGrid(){
+  const sel=document.getElementById('eaMthSel');
+  const[y,m]=sel.value.split('-').map(Number);
+  const total=dim(y,m-1);let html='';
+  for(let d=1;d<=total;d++){
+    const k=dk(y,m-1,d);const w=new Date(y,m-1,d).getDay();
+    const wknd=w===0||w===6;
+    const val=S.eaData[k]!==undefined?S.eaData[k]:'';
+    html+=`<div class="ea-cell${wknd?' wknd':''}">
+      <div class="ea-cell-date">${m}/${d}<br><span style="font-size:9px">${DOW[w]}</span></div>
+      <input class="ea-num" type="number" min="0" max="30" id="ea-${k}" value="${val}" placeholder="—">
+    </div>`;
+  }
+  document.getElementById('eaGrid').innerHTML=html;
+}
+function saveEa(){
+  document.querySelectorAll('[id^="ea-"]').forEach(inp=>{
+    const k=inp.id.replace('ea-','');const v=inp.value.trim();
+    if(v!==''&&!isNaN(v))S.eaData[k]=parseInt(v);else delete S.eaData[k];
+  });
+  save();renderAll();toast('EA 人力已儲存');
+}
+function clearSched(){
+  const{year:y,month:m}=S;
+  if(!confirm(`確定清除 ${y}年${MTH[m]} 所有排班？`))return;
+  for(let d=1;d<=dim(y,m);d++)delete S.schedule[dk(y,m,d)];
+  save();renderAll();toast('已清除');
+}
+
+function switchTab(tab,btn){
+  document.querySelectorAll('[id^="tab-"]').forEach(el=>el.style.display='none');
+  document.getElementById('tab-'+tab).style.display='';
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(tab==='overview')renderOverview();
+  if(tab==='admin'){renderMgrTags();renderTcEdit();buildEaMthSel();renderEaGrid();}
+}
+function toast(msg,dur=2200){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+function renderAll(){renderCal();renderMyList();renderStats();renderEaSide();renderIdentBadge();}
+
+// ══════════════════════════════════════════
+// 🔥 Firebase 設定
+// 步驟：把下方 firebaseConfig 換成你自己的值
+// （從 Firebase Console > 專案設定 > 你的應用程式複製）
+// ══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey:            "請填入",
+  authDomain:        "請填入",
+  databaseURL:       "請填入",   // 格式: https://xxx-default-rtdb.firebaseio.com
+  projectId:         "請填入",
+  storageBucket:     "請填入",
+  messagingSenderId: "請填入",
+  appId:             "請填入"
+};
+
+// ── Firebase 初始化 ──
+let db = null;
+let fbRef = null;
+let useFirebase = false;
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    fbRef = db.ref('schedule_data');
+    useFirebase = true;
+
+    // 即時監聽：只要資料有變動，所有人自動更新
+    fbRef.on('value', snap => {
+      const data = snap.val();
+      if (!data) return;
+      // 保留本機 me（只屬於自己的選擇）
+      const myMe = S.me;
+      S = Object.assign(S, data);
+      S.me = myMe;
+      renderAll();
+      setSyncStatus('已同步 ' + new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+    });
+
+    setSyncStatus('Firebase 連線中…');
+  } catch(e) {
+    console.warn('Firebase 初始化失敗，改用本機模式', e);
+    useFirebase = false;
+    loadLocal();
+    setSyncStatus('本機模式');
+  }
+}
+
+function setSyncStatus(msg) {
+  document.getElementById('syncTime').textContent = msg;
+}
+
+// ── 儲存（寫入 Firebase 或 localStorage）──
+function save() {
+  // 本機永遠存，方便備份
+  try { localStorage.setItem('tc_v3', JSON.stringify(S)); } catch(e) {}
+
+  if (useFirebase) {
+    // 不存 me（個人選擇，不共享）
+    const {me, year, month, ...shared} = S;
+    fbRef.set(shared)
+      .then(() => setSyncStatus('已同步 ' + new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'})))
+      .catch(e => { setSyncStatus('⚠ 同步失敗'); console.error(e); });
+  } else {
+    setSyncStatus('已儲存（本機）');
+  }
+}
+
+// ── 從 localStorage 讀舊資料 ──
+function loadLocal() {
+  try {
+    const s = localStorage.getItem('tc_v3');
+    if (s) {
+      const loaded = JSON.parse(s);
+      if (loaded.tcManagers) {
+        for (const name in loaded.tcManagers) {
+          if (Array.isArray(loaded.tcManagers[name]))
+            loaded.tcManagers[name] = {leaveDays: []};
+        }
+      }
+      S = Object.assign(S, loaded);
+    }
+  } catch(e) {}
+}
+
+// ── 啟動流程 ──
+// 1. 先讀本機資料（讓畫面立即顯示，不用等 Firebase）
+loadLocal();
+buildIdentSel();
+renderAll();
+
+// 2. 再連 Firebase（連上後自動用雲端資料覆蓋並即時同步）
+//    如果 firebaseConfig 還沒填，會自動退回本機模式
+if (firebaseConfig.apiKey !== '請填入') {
+  initFirebase();
+} else {
+  setSyncStatus('⚠ 尚未設定 Firebase（本機模式）');
+}
+</script>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+</body>
+</html>
