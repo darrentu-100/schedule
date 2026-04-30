@@ -491,7 +491,7 @@ function buildIdentSel(){
   s.innerHTML='<option value="">— 請選擇 —</option>'+
     S.managers.map(n=>`<option value="${n}"${n===S.me?' selected':''}>${n}</option>`).join('');
 }
-function onIdentChange(){S.me=document.getElementById('identSel').value;save();renderAll();}
+function onIdentChange(){S.me=document.getElementById('identSel').value;try{localStorage.setItem('tc_me',S.me);}catch(e){}renderAll();}
 function renderIdentBadge(){
   const b=document.getElementById('identBadge');
   if(S.me){b.style.display='flex';document.getElementById('identAvatar').textContent=S.me.slice(0,2);document.getElementById('identName').textContent=S.me;}
@@ -514,7 +514,7 @@ function removeSelf(k){
   if(!S.schedule[k])return;
   S.schedule[k]=S.schedule[k].filter(n=>n!==S.me);
   if(!S.schedule[k].length)delete S.schedule[k];
-  save();renderAll();toast('已取消登記');
+  saveScheduleOnly();renderAll();toast('已取消登記');
 }
 
 function renderStats(){
@@ -605,7 +605,7 @@ function addSelf(){
   if(!S.schedule[modalKey])S.schedule[modalKey]=[];
   if(S.schedule[modalKey].length>=LIMIT)return;
   if(!S.schedule[modalKey].includes(S.me))S.schedule[modalKey].push(S.me);
-  save();renderAll();
+  saveScheduleOnly();renderAll();
   const{y,m,d}=parseDk(modalKey);openModal(y,m,d);
   toast(`已登記 ${S.me} 前往台中 ${m+1}/${d}`);
 }
@@ -613,11 +613,11 @@ function removeFromDay(k,name){
   if(!S.schedule[k])return;
   S.schedule[k]=S.schedule[k].filter(n=>n!==name);
   if(!S.schedule[k].length)delete S.schedule[k];
-  save();renderAll();const{y,m,d}=parseDk(k);openModal(y,m,d);toast('已取消登記');
+  saveScheduleOnly();renderAll();const{y,m,d}=parseDk(k);openModal(y,m,d);toast('已取消登記');
 }
 function chMonth(dir){
   S.month+=dir;if(S.month>11){S.month=0;S.year++;}if(S.month<0){S.month=11;S.year--;}
-  save();renderAll();
+  renderAll();
 }
 
 function renderOverview(){
@@ -834,6 +834,25 @@ async function loadCloud() {
 }
 
 // ── 儲存到雲端 ──
+// saveScheduleOnly: only writes schedule (called by user booking actions)
+function saveScheduleOnly() {
+  try { localStorage.setItem('tc_v3', JSON.stringify(S)); } catch(e) {}
+  setSyncStatus('同步中...');
+  // Only push schedule, never overwrite managers/tcManagers/eaData
+  fetch(GAS_URL).then(r=>r.text()).then(text=>{
+    let remote = {};
+    try { if(text && text!=='{}') remote = JSON.parse(text); } catch(e) {}
+    // Merge: keep remote managers/tcManagers/eaData, only update schedule
+    const merged = Object.assign({}, remote, { schedule: S.schedule });
+    return fetch(GAS_URL, { method:'POST', body: JSON.stringify(merged) });
+  }).then(()=>{
+    setSyncStatus('已同步 ' + new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+  }).catch(()=>{
+    setSyncStatus('⚠ 同步失敗，已存本機');
+  });
+}
+
+// saveAll: writes everything (only called by admin actions)
 function save() {
   try { localStorage.setItem('tc_v3', JSON.stringify(S)); } catch(e) {}
   const {me, year, month, ...shared} = S;
@@ -862,6 +881,9 @@ function loadLocal() {
       }
       S = Object.assign(S, loaded);
     }
+    // Restore personal identity selection
+    const savedMe = localStorage.getItem('tc_me');
+    if (savedMe) S.me = savedMe;
   } catch(e) {}
 }
 
