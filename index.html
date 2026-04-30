@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>台北主管 × 台中排班</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -317,10 +317,13 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
       <div style="font-size:28px">🔐</div>
       <div style="font-size:14px;color:var(--text2);text-align:center">請輸入管理密碼才能進入設定</div>
       <input class="inp" type="password" id="adminPwInput" placeholder="輸入密碼"
+        autocomplete="off"
         style="width:100%;max-width:320px;font-size:16px;padding:14px 16px;text-align:center;letter-spacing:4px"
-        onkeydown="if(event.key='Enter')checkAdminPw()">
-      <button class="btn btn-p" onclick="checkAdminPw()"
-        style="width:100%;max-width:320px;padding:14px;font-size:15px;min-height:50px">確認進入</button>
+        onkeydown="if(event.key==='Enter'){event.preventDefault();checkAdminPw();}">
+      <button class="btn btn-p"
+        onclick="checkAdminPw()"
+        ontouchend="event.preventDefault();checkAdminPw();"
+        style="width:100%;max-width:320px;padding:14px;font-size:15px;min-height:50px;touch-action:manipulation">確認進入</button>
       <div id="adminPwErr" style="font-size:13px;color:var(--warn);display:none">❌ 密碼錯誤，請再試一次</div>
     </div>
   </div>
@@ -419,15 +422,19 @@ const MTH=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月
 // ── 密碼解鎖 ──
 let adminUnlocked=false;
 function checkAdminPw(){
-  const v=document.getElementById('adminPwInput').value;
+  const inp=document.getElementById('adminPwInput');
+  const v=inp.value;
   if(v===ADMIN_PW){
     adminUnlocked=true;
+    inp.value='';
+    inp.blur();
     document.getElementById('adminLock').style.display='none';
     document.getElementById('adminContent').style.display='';
     renderMgrTags();renderTcEdit();buildEaMthSel();renderEaGrid();renderChangeLog();
   } else {
     document.getElementById('adminPwErr').style.display='';
-    document.getElementById('adminPwInput').value='';
+    inp.value='';
+    inp.focus();
   }
 }
 
