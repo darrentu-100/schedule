@@ -443,7 +443,7 @@ let changeLog=[];
 try{const l=localStorage.getItem('tc_log');if(l)changeLog=JSON.parse(l);}catch(e){}
 
 function addLog(action){
-  const entry={time:new Date().toLocaleString('zh-TW'),who:S.me||'未知',action};
+  const entry={time:new Date().toLocaleString('zh-TW'),who:adminUnlocked?'管理員':(S.me||'未知'),action};
   changeLog.unshift(entry);
   if(changeLog.length>50)changeLog=changeLog.slice(0,50);
   try{localStorage.setItem('tc_log',JSON.stringify(changeLog));}catch(e){}
