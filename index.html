@@ -317,7 +317,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
       <div style="font-size:28px">🔐</div>
       <div style="font-size:14px;color:var(--text2);text-align:center">請輸入管理密碼才能進入設定</div>
       <input class="inp" type="password" id="adminPwInput" placeholder="輸入密碼"
-        autocomplete="off"
+        autocomplete="new-password"
         style="width:100%;max-width:320px;font-size:16px;padding:14px 16px;text-align:center;letter-spacing:4px"
         onkeydown="if(event.key==='Enter'){event.preventDefault();checkAdminPw();}">
       <button class="btn btn-p"
@@ -424,7 +424,8 @@ let adminUnlocked=false;
 function checkAdminPw(){
   const inp=document.getElementById('adminPwInput');
   const v=inp.value;
-  if(v===ADMIN_PW){
+  // Must have content and match
+  if(v && v===ADMIN_PW){
     adminUnlocked=true;
     inp.value='';
     inp.blur();
@@ -433,8 +434,7 @@ function checkAdminPw(){
     renderMgrTags();renderTcEdit();buildEaMthSel();renderEaGrid();renderChangeLog();
   } else {
     document.getElementById('adminPwErr').style.display='';
-    inp.value='';
-    inp.focus();
+    setTimeout(()=>{inp.value='';inp.focus();},100);
   }
 }
 
@@ -786,7 +786,16 @@ function clearSched(){
 }
 
 function switchTab(tab,btn){
-  if(tab!=='admin'){adminUnlocked=false;document.getElementById('adminLock').style.display='';document.getElementById('adminContent').style.display='none';document.getElementById('adminPwInput').value='';document.getElementById('adminPwErr').style.display='none';}
+  // Always reset admin lock when switching tabs
+  adminUnlocked=false;
+  const lock=document.getElementById('adminLock');
+  const cont=document.getElementById('adminContent');
+  const inp=document.getElementById('adminPwInput');
+  const err=document.getElementById('adminPwErr');
+  if(lock){lock.style.display='';}
+  if(cont){cont.style.display='none';}
+  if(inp){inp.value='';inp.setAttribute('autocomplete','new-password');}
+  if(err){err.style.display='none';}
   document.querySelectorAll('[id^="tab-"]').forEach(el=>el.style.display='none');
   document.getElementById('tab-'+tab).style.display='';
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
