@@ -310,6 +310,23 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 <!-- ══ 設定 ══ -->
 <div id="tab-admin" style="display:none">
 
+  <!-- 密碼鎖畫面 -->
+  <div id="adminLock" class="card" style="margin-bottom:1rem">
+    <div class="card-hdr"><div class="card-title">🔒 管理設定（需要密碼）</div></div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:12px;align-items:center;padding:24px 16px">
+      <div style="font-size:13px;color:var(--text2)">請輸入管理密碼才能進入設定</div>
+      <div style="display:flex;gap:8px;width:100%;max-width:320px">
+        <input class="inp" type="password" id="adminPwInput" placeholder="輸入密碼" style="flex:1"
+          onkeydown="if(event.key==='Enter')checkAdminPw()">
+        <button class="btn btn-p" onclick="checkAdminPw()">確認</button>
+      </div>
+      <div id="adminPwErr" style="font-size:12px;color:var(--warn);display:none">密碼錯誤，請再試一次</div>
+    </div>
+  </div>
+
+  <!-- 設定內容（解鎖後才顯示） -->
+  <div id="adminContent" style="display:none">
+
   <div class="card" style="margin-bottom:1rem">
     <div class="card-hdr"><div class="card-title">① 台北主管名單</div></div>
     <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
@@ -359,6 +376,19 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
     </div>
   </div>
 
+  <!-- 更動記錄 -->
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-hdr">
+      <div class="card-title">📋 更動記錄</div>
+      <button class="btn" onclick="clearLog()" style="font-size:11px;padding:4px 10px">清除記錄</button>
+    </div>
+    <div class="card-body" id="changeLog" style="max-height:300px;overflow-y:auto;font-size:12px;color:var(--text2)">
+      <div style="color:var(--text3)">尚無更動記錄</div>
+    </div>
+  </div>
+
+  </div><!-- /adminContent -->
+
 </div>
 </div>
 
@@ -381,8 +411,54 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 
 <script>
 const LIMIT=2;
+const ADMIN_PW='Taichung6000';
 const DOW=['日','一','二','三','四','五','六'];
 const MTH=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+// ── 密碼解鎖 ──
+let adminUnlocked=false;
+function checkAdminPw(){
+  const v=document.getElementById('adminPwInput').value;
+  if(v===ADMIN_PW){
+    adminUnlocked=true;
+    document.getElementById('adminLock').style.display='none';
+    document.getElementById('adminContent').style.display='';
+    renderMgrTags();renderTcEdit();buildEaMthSel();renderEaGrid();renderChangeLog();
+  } else {
+    document.getElementById('adminPwErr').style.display='';
+    document.getElementById('adminPwInput').value='';
+  }
+}
+
+// ── 更動記錄 ──
+let changeLog=[];
+try{const l=localStorage.getItem('tc_log');if(l)changeLog=JSON.parse(l);}catch(e){}
+
+function addLog(action){
+  const entry={time:new Date().toLocaleString('zh-TW'),who:S.me||'未知',action};
+  changeLog.unshift(entry);
+  if(changeLog.length>50)changeLog=changeLog.slice(0,50);
+  try{localStorage.setItem('tc_log',JSON.stringify(changeLog));}catch(e){}
+  renderChangeLog();
+}
+function renderChangeLog(){
+  const el=document.getElementById('changeLog');
+  if(!el)return;
+  if(!changeLog.length){el.innerHTML='<div style="color:var(--text3)">尚無更動記錄</div>';return;}
+  el.innerHTML=changeLog.map(e=>
+    `<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:baseline">
+      <span style="font-size:10px;color:var(--text3);white-space:nowrap;font-family:monospace">${e.time}</span>
+      <span style="color:var(--accent);font-weight:500;white-space:nowrap">${e.who}</span>
+      <span>${e.action}</span>
+    </div>`
+  ).join('');
+}
+function clearLog(){
+  if(!confirm('確定清除所有更動記錄？'))return;
+  changeLog=[];
+  try{localStorage.removeItem('tc_log');}catch(e){}
+  renderChangeLog();
+}
 
 let S={
   year:new Date().getFullYear(), month:new Date().getMonth(),
@@ -561,13 +637,14 @@ function renderOverview(){
 function addMgr(){
   const inp=document.getElementById('newMgr');const n=inp.value.trim();
   if(!n||S.managers.includes(n)){inp.value='';return;}
-  S.managers.push(n);inp.value='';save();renderMgrTags();buildIdentSel();
+  S.managers.push(n);inp.value='';addLog(`新增台北主管：${n}`);save();renderMgrTags();buildIdentSel();
 }
 function removeMgr(name){
   if(!confirm(`確定移除「${name}」？`))return;
   S.managers=S.managers.filter(n=>n!==name);
   for(const k in S.schedule){S.schedule[k]=(S.schedule[k]||[]).filter(n=>n!==name);if(!S.schedule[k].length)delete S.schedule[k];}
   if(S.me===name)S.me='';
+  addLog(`刪除台北主管：${name}`);
   save();renderMgrTags();buildIdentSel();renderAll();
 }
 function renderMgrTags(){
@@ -581,11 +658,11 @@ function addTcMgr(){
   const inp=document.getElementById('newTcMgr');const n=inp.value.trim();
   if(!n)return;
   if(!S.tcManagers[n])S.tcManagers[n]={leaveDays:[]};
-  inp.value='';save();renderTcEdit();
+  inp.value='';addLog(`新增台中主管：${n}`);save();renderTcEdit();
 }
 function removeTcMgr(name){
   if(!confirm(`確定刪除「${name}」的班表？`))return;
-  delete S.tcManagers[name];save();renderTcEdit();
+  addLog(`刪除台中主管：${name}`);delete S.tcManagers[name];save();renderTcEdit();
 }
 function toggleLeave(name,k){
   const mgr=S.tcManagers[name];if(!mgr)return;
@@ -690,16 +767,18 @@ function saveEa(){
     const k=inp.id.replace('ea-','');const v=inp.value.trim();
     if(v!==''&&!isNaN(v))S.eaData[k]=parseInt(v);else delete S.eaData[k];
   });
-  save();renderAll();toast('EA 人力已儲存');
+  addLog('更新 EA 人力資料');save();renderAll();toast('EA 人力已儲存');
 }
 function clearSched(){
   const{year:y,month:m}=S;
   if(!confirm(`確定清除 ${y}年${MTH[m]} 所有排班？`))return;
+  addLog(`清除 ${y}年${MTH[m]} 所有排班記錄`);
   for(let d=1;d<=dim(y,m);d++)delete S.schedule[dk(y,m,d)];
   save();renderAll();toast('已清除');
 }
 
 function switchTab(tab,btn){
+  if(tab!=='admin'){adminUnlocked=false;document.getElementById('adminLock').style.display='';document.getElementById('adminContent').style.display='none';document.getElementById('adminPwInput').value='';document.getElementById('adminPwErr').style.display='none';}
   document.querySelectorAll('[id^="tab-"]').forEach(el=>el.style.display='none');
   document.getElementById('tab-'+tab).style.display='';
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
